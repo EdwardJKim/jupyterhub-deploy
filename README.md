@@ -1,7 +1,9 @@
-# JupyterHub deployment for the compmodels class
+# JupyterHub deployment
 
 This repository contains an Ansible playbook for launching JupyterHub for the
-Computational Models of Cognition class at Berkeley.
+Intro to Data Science class at Berkeley.
+
+Forked from [compmodels/jupyterhub-deploy](https://github.com/compmodels/jupyterhub-deploy).
 
 The setup is a bit complex, so this readme will try to break it down and explain everything that's going on. If you want to jump right into the details of how to deploy, see first the [installation instructions](INSTALL.md) and then the section on [deploying](#deploying).
 
