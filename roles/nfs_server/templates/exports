@@ -1,4 +1,4 @@
 {% for host in groups['jupyterhub_nodes'] %}
-{{ nfspath }}      {{ hostvars[host]['fqdn'] }}(rw,fsid=0,no_subtree_check,sync)
-{{ nfspath }}/home {{ hostvars[host]['fqdn'] }}(rw,nohide,insecure,no_subtree_check,async)
+{{ nfspath }}      {{ hostvars[host]['servicenet_ip'] }}(rw,sync,no_root_squash,no_subtree_check)
 {% endfor %}
+{{ nfspath }}      {{ proxy_server }}(rw,sync,no_root_squash,no_subtree_check)

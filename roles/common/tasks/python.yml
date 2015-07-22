@@ -9,3 +9,11 @@
 - name: pip
   command: python /tmp/get_pip.py creates=/usr/local/bin/pip
   sudo: yes
+
+- name: pip3
+  apt: name=python3-pip state=latest
+  sudo: yes
+
+- name: pip3 upgrade
+  pip: name=pip state=latest executable=pip3
+  sudo: yes

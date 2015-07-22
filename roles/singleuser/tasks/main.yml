@@ -3,26 +3,40 @@
   docker:
     docker_api_version: "{{ docker_api_version }}"
     state: absent
-    image: compmodels/systemuser
-  sudo: yes
-
-- name: create the systemuser directory
-  file: path=/srv/systemuser state=directory
+    image: edwardjkim/singleuser
   sudo: yes
   tags:
+    - singleuser
+
+- name: create the singleuser directory
+  file: path=/srv/singleuser state=directory
+  sudo: yes
+  tags:
+    - singleuser
     - docker-rebuild
 
-- name: copy the Dockerfile to the systemuser directory
+- name: copy the Dockerfile to the singleuser directory
   copy:
     src: Dockerfile
-    dest: /srv/systemuser/Dockerfile
+    dest: /srv/singleuser/Dockerfile
   sudo: yes
   tags:
+    - singleuser
     - docker-rebuild
 
-- name: build compmodels/systemuser image
-  shell: docker build -t compmodels/systemuser /srv/systemuser
+- name: copy singleuser.sh to the singleuser directory
+  copy:
+    src: singleuser.sh
+    dest: /srv/singleuser/singleuser.sh
   sudo: yes
   tags:
+    - singleuser
+    - docker-rebuild
+
+- name: build edwardjkim/singleuser image
+  shell: docker build -t edwardjkim/singleuser /srv/singleuser
+  sudo: yes
+  tags:
+    - singleuser
     - docker-rebuild
 

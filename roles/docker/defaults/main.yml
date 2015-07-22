@@ -30,3 +30,6 @@ docker_tls_cert: ''
 # actually be saved in plain text, they should be overwritten in an encrypted
 # vault file.
 docker_tls_key: ''
+
+# The version of linux kernel, uname -r.
+ansible_kernel: 3.16.0-40-generic

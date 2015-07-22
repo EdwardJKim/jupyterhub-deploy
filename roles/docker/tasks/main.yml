@@ -40,6 +40,20 @@
   sudo: yes
   when: not https_transport_file.stat.exists
 
+- name: install packages necessary for aufs
+  apt: pkg={{ item }} state=present update_cache=yes
+  sudo: yes
+  with_items:
+    - lxc
+    - wget
+    - bsdtar
+    - curl
+    - linux-image-extra-{{ ansible_kernel }}
+
+- name: modprobe aufs
+  modprobe: name=aufs state=present
+  sudo: yes
+
 - name: ensure the docker apt key is trusted
   apt_key:
     keyserver: hkp://keyserver.ubuntu.com:80
@@ -75,29 +89,48 @@
       to: "{{ docker_tls_path }}/key.pem"
     - from: cert.pem.j2
       to: "{{ docker_tls_path }}/cert.pem"
+  sudo: yes
   when: docker_client_tls or docker_server_tls
 
 - name: restart docker
   shell: service docker restart
   sudo: yes
 
-- name: docker-py
-  pip: name=docker-py state=present version=1.1.0
+- name: docker-py for python 2
+  pip:
+    name: "{{ item }}"
+  with_items:
+    - six==1.4
+    - docker-py==1.1.0
+  sudo: yes
+  tags:
+    - docker-rebuild
+
+- name: docker-py for python 3
+  pip:
+    name: "{{ item }}"
+    executable: pip3
+  with_items:
+    - six==1.4
+    - docker-py==1.1.0
   sudo: yes
   tags:
     - docker-rebuild
 
 - name: stop running docker containers
   shell: docker stop $(docker ps -a -q) || true
+  sudo: yes
   tags:
     - docker-rebuild
 
 - name: remove docker containers
   shell: docker rm -v $(docker ps -a -q) || true
+  sudo: yes
   tags:
     - docker-rebuild
 
 - name: turn off docker cleanup cronjob
+  sudo: yes
   cron: name="docker cleanup" state=absent
 
 - name: pull docker images
@@ -108,4 +141,5 @@
     - docker-rebuild
 
 - name: run docker cleanup cronjob
+  sudo: yes
   cron: name="docker cleanup" minute=15 user="root" job="/usr/bin/docker rmi $(/usr/bin/docker images -q --filter 'dangling=true')"

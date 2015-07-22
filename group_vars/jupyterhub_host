@@ -1,6 +1,6 @@
 ---
 docker_images:
-  - jupyter/jupyterhub
+  - edwardjkim/systemuser
 
 docker_server_tls: no
 docker_client_tls: yes

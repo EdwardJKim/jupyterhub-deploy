@@ -10,7 +10,7 @@ ssl_cert: ''
 ssl_key: ''
 
 # This is where the nginx configuration should live
-nginx_config_dir: /srv/nginx
+nginx_config_dir: /etc/nginx/certs
 
 # These are the volumes that the nginx container should mount
 nginx_volumes:
@@ -26,4 +26,4 @@ nginx_ports:
 notebook_static_files: /srv/ipython/IPython/html/static/
 
 # Needed to make sure the API version matches with docker-py
-docker_api_version: 1.16
+docker_api_version: 1.17

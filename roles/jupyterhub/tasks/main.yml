@@ -12,17 +12,29 @@
 - fail: msg="instructor list is empty"
   when: instructors|length == 0
 
-- name: iptables configuration
-  command: iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to 8000
+#- name: iptables configuration
+#  command: iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to 8000
+#  sudo: yes
+#
+
+- name: install npm
+  apt: name=npm state=latest
+  sudo: yes
+  
+- name: install nodejs-legacy
+  apt: name=nodejs-legacy state=latest
   sudo: yes
 
-- name: stop and remove jupyterhub container
-  docker:
-    docker_api_version: "{{ docker_api_version }}"
-    state: absent
-    image: compmodels/jupyterhub
-    name: jupyterhub
+- name: install configurable-http-proxy
+  npm: name=configurable-http-proxy global=yes state=latest
   sudo: yes
+
+- name: stop jupyterhub server
+  shell: pgrep -f jupyterhub | xargs -r kill
+  ignore_errors: True
+  sudo: yes
+  tags:
+    - launch-jupyterhub
 
 - name: create the jupyterhub_db directory
   file: path=/srv/jupyterhub_db state=directory
@@ -41,14 +53,25 @@
   sudo: yes
   tags:
     - docker-rebuild
+    - launch-jupyterhub
 
-- name: copy the Dockerfile to the jupyterhub directory
+- name: copy requirements.txt
   copy:
-    src: Dockerfile
-    dest: /srv/jupyterhub/Dockerfile
+    src:  requirements.txt
+    dest: /tmp/requirements.txt
   sudo: yes
-  tags:
-    - docker-rebuild
+
+- name: install requirements
+  pip: requirements=/tmp/requirements.txt executable=pip3
+  sudo: yes
+
+- name: install ipython notebook
+  pip: name=ipython[notebook] executable=pip3
+  sudo: yes
+
+- name: install jupyterhub
+  pip: name='git+https://github.com/jupyter/jupyterhub.git@master#egg=jupyterhub' executable=pip3
+  sudo: yes
 
 - name: copy jupyterhub_config.py to the jupyterhub directory
   template:
@@ -57,49 +80,52 @@
   sudo: yes
   tags:
     - docker-rebuild
+    - launch-jupyterhub
 
 - name: create the userlist
   template: src=userlist.j2 dest=/srv/jupyterhub/userlist
   sudo: yes
   tags:
     - docker-rebuild
+    - launch-jupyterhub
+
+- name: create the cookie secret file
+  template: src=cookie_secret_file.j2 dest=/srv/jupyterhub/cookie_secret_file
+  sudo: yes
+  tags:
+    - docker-rebuild
+    - launch-jupyterhub
+
+- name: add dockerspawner
+  pip: name='git+git://github.com/jupyter/dockerspawner.git@master#egg=dockerspawner' executable=pip3
+  sudo: yes
+
+- name: add oauthenticator
+  pip: name='git+git://github.com/jupyter/oauthenticator.git@master#egg=oauthenticator' executable=pip3
+  sudo: yes
 
 - name: add swarmspawner.py
-  copy: src=swarmspawner.py dest=/srv/jupyterhub/swarmspawner.py
+  copy: src=swarmspawner.py dest=/usr/local/lib/python3.4/dist-packages/swarmspawner.py
   sudo: yes
   tags:
     - docker-rebuild
+    - swarmspawner
 
-- name: add docker_oauth.py
-  copy: src=docker_oauth.py dest=/srv/jupyterhub/docker_oauth.py
+- name: environment variables necessary for Docker Swarm
+  lineinfile: dest=/root/.bashrc line="export DOCKER_HOST=https://127.0.0.1:2376"
   sudo: yes
-  tags:
-    - docker-rebuild
 
-- name: build compmodels/jupyterhub image
-  shell: docker build -t compmodels/jupyterhub /srv/jupyterhub
+- name: source .bashrc
+  shell: source /root/.bashrc
+  args:
+    executable: /bin/bash
   sudo: yes
-  tags:
-    - docker-rebuild
 
 - name: launch jupyterhub
-  docker:
-    docker_api_version: "{{ docker_api_version }}"
-    state: running
-    image: compmodels/jupyterhub
-    detach: true
-    net: host
-    name: jupyterhub
-    env:
-      GITHUB_CLIENT_ID: "{{ github_client_id }}"
-      GITHUB_CLIENT_SECRET: "{{ github_client_secret }}"
-      OAUTH_CALLBACK_URL: "{{ oauth_callback_url }}"
-      JPY_COOKIE_SECRET: "{{ cookie_secret }}"
-      CONFIGPROXY_AUTH_TOKEN: "{{ configproxy_auth_token }}"
-    volumes:
-        - /var/run/docker.sock:/docker.sock
-        - /var/run/restuser.sock:/restuser.sock
-        - /srv/jupyterhub_db:/srv/jupyterhub_db
-        - "{{ docker_tls_path }}:{{ docker_tls_path }}"
+  command: /usr/local/bin/jupyterhub --config '/srv/jupyterhub/jupyterhub_config.py' --log-file '/srv/jupyterhub/jupyterhub.log'
+  async: 3600
+  poll: 0
+  sudo: yes
   tags:
-    - docker-rebuild
+    - launch-jupyterhub
+    - launch

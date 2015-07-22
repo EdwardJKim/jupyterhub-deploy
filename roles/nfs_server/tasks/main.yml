@@ -12,20 +12,6 @@
   tags:
     - nfs
 
-# - name: install mdadm
-#   apt: update_cache=yes cache_valid_time=600 name=mdadm state=latest
-#   sudo: yes
-#   tags:
-#     - nfs
-#   when: not test
-
-# - name: run the lsi-cards script
-#   script: lsi-cards {{ ansible_fqdn }} /var/lib/docker creates=/etc/{{ ansible_fqdn }}.raid-setup
-#   sudo: yes
-#   tags:
-#     - nfs
-#   when: not test
-
 - name: stop nfs
   service: name=nfs-kernel-server state=stopped
   sudo: yes
@@ -33,7 +19,7 @@
     - nfs
 
 - name: unmount existing volumes
-  shell: umount {{ nfspath }}/home || true
+  shell: umount {{ nfspath }} || true
   sudo: yes
   tags:
     - nfs
@@ -44,20 +30,14 @@
   tags:
     - nfs
 
-- name: create sub directory for NFS volume
-  file: path={{ nfspath }}/home state=directory
-  sudo: yes
-  tags:
-    - nfs
-
 - name: create directory for NFS mount
-  file: path={{ nfsmount }} state=directory
+  file: path={{ nfsmount }} state=directory owner=nobody group=nogroup
   sudo: yes
   tags:
     - nfs
 
 - name: mount NFS volume
-  shell: mount --bind {{ nfsmount }} {{ nfspath }}/home
+  shell: mount /dev/vdb {{ nfspath }}
   sudo: yes
   tags:
     - nfs
@@ -73,6 +53,12 @@
     dest: /etc/idmapd.conf
     regexp: '(# )?Domain =.*'
     line: 'Domain = {{ nfsdomain }}'
+  sudo: yes
+  tags:
+    - nfs
+
+- name: reload exportfs
+  command: exportfs -a
   sudo: yes
   tags:
     - nfs

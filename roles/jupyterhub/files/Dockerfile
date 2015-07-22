@@ -1,6 +1,6 @@
 FROM jupyter/jupyterhub
 
-MAINTAINER Jessica Hamrick <jhamrick@berkeley.edu>
+MAINTAINER Edward J Kim <edward.junhyung.kim@gmail.com>
 
 # We need to update pip, otherwise the version of requests that
 # is installed by dockerspawner breaks things.

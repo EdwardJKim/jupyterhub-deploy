@@ -8,7 +8,14 @@
   - 'vars.yml'
   roles:
   - common
-  - rackspace
+
+- hosts:
+  - jupyterhub_host
+  - jupyterhub_nodes
+  vars_files:
+  - 'secrets.vault.yml'
+  - 'vars.yml'
+  roles:
   - docker
 
 - hosts: proxy
@@ -25,14 +32,22 @@
   - 'vars.yml'
   roles:
   - nfs_server
-  - backup
+#  - backup
+
+- hosts:
+  - proxy
+  - jupyterhub_nodes
+  vars_files:
+  - 'secrets.vault.yml'
+  - 'vars.yml'
+  roles:
+  - nfs_client
 
 - hosts: jupyterhub_nodes
   vars_files:
   - 'secrets.vault.yml'
   - 'vars.yml'
   roles:
-  - nfs_client
   - singleuser
 
 - hosts: jupyterhub_host
@@ -41,8 +56,7 @@
   - 'users.vault.yml'
   - 'vars.yml'
   roles:
-  - restuser
   - swarm
   - jupyterhub
-  - cull
-  - stats
+#  - cull
+#  - stats

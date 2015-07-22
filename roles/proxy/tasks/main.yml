@@ -1,37 +1,35 @@
 ---
-- name: stop and remove nginx container
-  docker:
-    docker_api_version: "{{ docker_api_version }}"
-    state: absent
-    image: compmodels/nginx
-    name: nginx
-  sudo: yes
-
-- name: stop and remove static files container
-  docker:
-    docker_api_version: "{{ docker_api_version }}"
-    state: absent
-    image: jupyter/systemuser
-    name: static-files
-  sudo: yes
-
-# Get static resources from the userland container
-- name: static files container
-  docker:
-    image: jupyter/systemuser
-    state: running
-    name: static-files
-    command: echo "#data-container-hack"
-    volumes:
-    - "{{ notebook_static_files }}"
+- name: add nginx repository
+  apt_repository: repo='ppa:nginx/stable' state=present
+  register: ppastable
   tags:
-    - docker-rebuild
+    - proxy
+
+- name: install nginx
+  apt: pkg=nginx state=installed update_cache=true
+  when: ppastable | success
+  register: nginxinstalled
+  notify:
+    - start nginx
+  tags:
+    - proxy
+
+- name: install php5-fpm
+  apt: pkg=php5-fpm state=installed
+  tags:
+    - proxy
 
 - name: configuration directories
-  file: state=directory dest={{ item }} mode=0755
-  with_items:
-  - "{{ nginx_config_dir }}"
+  file: state=directory dest=/etc/nginx mode=0755
   sudo: yes
+  tags:
+    - proxy
+
+- name: create ssl certs directories
+  file: state=directory dest=/etc/nginx/certs mode=0600
+  sudo: yes
+  tags:
+    - proxy
 
 - name: SSL credentials
   template: src={{ item.from }} dest={{ item.to }} mode=0644
@@ -41,31 +39,14 @@
   - from: ssl.crt.j2
     to: "{{ ssl_cert_path }}"
   sudo: yes
+  tags:
+    - proxy
 
 - name: nginx configuration
-  template: src=nginx.conf.j2 dest={{ nginx_config_dir }}/nginx.conf mode=0644
+  template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf mode=0644
   sudo: yes
-
-- name: copy the Dockerfile to the nginx configuration directory
-  template: src=Dockerfile.j2 dest={{ nginx_config_dir }}/Dockerfile mode=0644
-  sudo: yes
-
-- name: build tmpnb nginx image
-  docker_image:
-    path: "{{ nginx_config_dir }}"
-    name: compmodels/nginx
-    state: build
-  sudo: yes
-
-- name: launch nginx
-  docker:
-    docker_api_version: "{{ docker_api_version }}"
-    image: compmodels/nginx
-    state: running
-    name: nginx
-    volumes: "{{ nginx_volumes }}"
-    ports: "{{ nginx_ports }}"
-    volumes_from:
-    - static-files
+  notify:
+    - restart nginx
   tags:
-    - docker-rebuild
+    - proxy
+
