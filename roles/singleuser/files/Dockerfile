@@ -9,8 +9,10 @@ RUN apt-get update && \
     apt-get install -y -q \
     vim \
     wget \
-    gfortran \ # need fortran compiler to install pymc
-    ttf-liberation \ # fonts needed in seaborn
+    # need fortran compiler to install pymc
+    gfortran \
+    # fonts needed in seaborn 
+    ttf-liberation \ 
     ttf-bitstream-vera 
  
 RUN pip3 install traitlets
