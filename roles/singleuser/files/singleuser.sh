@@ -8,5 +8,3 @@ jupyterhub-singleuser \
   --base-url=$JPY_BASE_URL \
   --hub-prefix=$JPY_HUB_PREFIX \
   --hub-api-url=$JPY_HUB_API_URL
-
-    

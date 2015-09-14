@@ -16,7 +16,7 @@
     - docker-rebuild
 
 - name: copy the Dockerfile to the singleuser directory
-  copy:
+  template:
     src: Dockerfile
     dest: /srv/singleuser/Dockerfile
   sudo: yes
@@ -28,6 +28,15 @@
   copy:
     src: singleuser.sh
     dest: /srv/singleuser/singleuser.sh
+  sudo: yes
+  tags:
+    - singleuser
+    - docker-rebuild
+
+- name: copy pyspark-notebook.py to the singleuser directory
+  template:
+    src: pyspark-notebook.py
+    dest: /srv/singleuser/pyspark-notebook.py
   sudo: yes
   tags:
     - singleuser
