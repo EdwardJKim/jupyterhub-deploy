@@ -1,22 +1,10 @@
 # Build as jupyter/jupyterhub-singleuser
 # Run with the DockerSpawner in JupyterHub
 
-FROM ipython/scipystack
+FROM lcdm/rppdm-standalone
 
-MAINTAINER IPython Project <ipython-dev@scipy.org>
-
-RUN apt-get update && \
-    apt-get install -y -q \
-    vim \
-    wget \
-    # need fortran compiler to install pymc
-    gfortran \
-    # fonts needed in seaborn 
-    ttf-liberation \ 
-    ttf-bitstream-vera 
- 
-RUN pip3 install pip --upgrade && \
-    pip3 install traitlets
+USER root
+ENV HOSTNAME "{{ servicenet_ip }}"
 
 RUN echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu precise main" > /etc/apt/sources.list.d/webupd8team-java.list &&\
     echo "deb-src http://ppa.launchpad.net/webupd8team/java/ubuntu precise main" >> /etc/apt/sources.list.d/webupd8team-java.list &&\
@@ -35,32 +23,28 @@ RUN mkdir -p $SPARK_HOME &&\
 RUN pip install py4j
 
 ENV PYTHONPATH $SPARK_HOME/python/:$PYTHONPATH
-ENV PYTHONPATH=$SPARK_HOME/python/lib/py4j-0.8.2.1-src.zip:$PYTHONPATH
-ENV PYSPARK_SUBMIT_ARGS="--master spark://10.0.3.70:7077 pyspark-shell"
+ENV PYTHONPATH $SPARK_HOME/python/lib/py4j-0.8.2.1-src.zip:$PYTHONPATH
+#ENV PYSPARK_PYTHON python3
+ENV PYSPARK_SUBMIT_ARGS "--master spark://10.0.3.70:7077 pyspark-shell"
 
 # fetch juptyerhub-singleuser entrypoint
 ADD https://raw.githubusercontent.com/jupyter/jupyterhub/master/jupyterhub/singleuser.py /usr/local/bin/jupyterhub-singleuser
 RUN chmod 755 /usr/local/bin/jupyterhub-singleuser
 
-# jupyter is our user
-RUN useradd -m -u 1000 -s /bin/bash data_scientist
+RUN echo "data_scientist:{{ sudo_password }}" | chpasswd && \
+    adduser data_scientist sudo
 
 USER data_scientist
-ENV HOME /home/data_scientist
-ENV SHELL /bin/bash
-ENV USER data_scientist
-
-RUN ipython profile create pyspark
-COPY pyspark-notebook.py /home/data_scientist/.ipython/profile_pyspark/startup/pyspark-notebook.py
 
 WORKDIR /home/data_scientist/
 
-# IPython introductions
-
-EXPOSE 8888
+EXPOSE 8888 8200-8300
 
 # set colors for terminal prompt
-RUN echo 'export PS1="\e[1;34m\u@\h:\w$ \e[0m"' >> /home/data_scientist/.bashrc
+RUN echo 'export PS1="\e[1;34m\u@rpds \W$ \e[0m"' >> /home/data_scientist/.bashrc && \
+    bash -c 'source /home/data_scientist/.bashrc'
+
+ADD pyspark-notebook.py /home/data_scientist/.ipython/profile_default/startup/00-pyspark-notebook.py
 
 ADD singleuser.sh /srv/singleuser/singleuser.sh
 
